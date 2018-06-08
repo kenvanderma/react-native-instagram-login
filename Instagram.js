@@ -15,6 +15,21 @@ import {
 import qs from 'qs'
 
 const { width, height } = Dimensions.get('window')
+const patchPostMessageFunction = function() {
+  var originalPostMessage = window.postMessage;
+
+  var patchedPostMessage = function(message, targetOrigin, transfer) { 
+    originalPostMessage(message, targetOrigin, transfer);
+  };
+
+  patchedPostMessage.toString = function() { 
+    return String(Object.hasOwnProperty).replace('hasOwnProperty', 'postMessage');
+  };
+
+  window.postMessage = patchedPostMessage;
+};
+
+const patchPostMessageJsCode = '(' + String(patchPostMessageFunction) + ')();';
 
 export default class Instagram extends Component {
   constructor (props) {
@@ -73,7 +88,7 @@ export default class Instagram extends Component {
           <KeyboardAvoidingView behavior='padding' style={[styles.keyboardStyle, this.props.styles.keyboardStyle]}>
             <View style={[styles.contentWarp, this.props.styles.contentWarp]}>
               <WebView
-                injectedJavaScript="window.postMessage = String(Object.hasOwnProperty).replace('hasOwnProperty', 'postMessage');"
+                injectedJavaScript={patchPostMessageJsCode}
                 {...this.props}
                 style={[styles.webView, this.props.styles.webView]}
                 source={{ uri: `https://api.instagram.com/oauth/authorize/?client_id=${clientId}&redirect_uri=${redirectUrl}&response_type=token&scope=${scopes.join('+')}` }}
